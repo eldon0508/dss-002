@@ -1,0 +1,29 @@
+{
+  "name": "dss-002",
+  "version": "0.0.1",
+  "author": "Eldon Yeap",
+  "description": "DSS-002 Secure Development Project",
+  "main": "app/app.js",
+  "scripts": {
+    "test": "npm run test",
+    "start": "node app/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eldon0508/dss-002.git"
+  },
+  "keywords": [
+    "cyber-security"
+  ],
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eldon0508/dss-002/issues"
+  },
+  "homepage": "https://github.com/eldon0508/dss-002#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.21.2",
+    "pg": "^8.14.0",
+    "uuid": "^11.1.0"
+  }
+}
