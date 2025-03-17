@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Foodies 'R' Us</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/x-icon" href="../imgs/foodie.ico" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <script src="../js/my_posts.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <a href="/"><img id="logo" src="../imgs/logo.png" /></a>
+      <h1>Foodies 'R' Us</h1>
+      <div class="dropdown">
+        <button id="login_link" href="#">Username <i class="fa fa-caret-down"></i></button>
+        <div class="dropdown-content">
+          <form method="post" action="/logout">
+            <button type="submit">Log out</button>
+          </form>
+        </div>
+      </div>
+    </header>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/posts">Latest Posts</a></li>
+        <li class="active"><a href="/my_posts">My Posts</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <section>
+        <h2>Share your thoughts</h2>
+        <p>Get chatting with your fellow Foodies!</p>
+
+        <form action="/makepost" method="post" id="postForm" name="postForm">
+          <fieldset>
+            <legend>Compose a Post</legend>
+            <label for="title">Post Title:</label>
+            <input id="title" name="title" type="text" placeholder="Title" required />
+
+            <label for="content">Post Content:</label>
+            <textarea id="content" name="content" placeholder="Write your thoughts here.." required></textarea>
+
+            <input id="postId" name="postId" type="hidden" />
+
+            <button type="submit" id="post_button">Post</button>
+          </fieldset>
+        </form>
+      </section>
+
+      <section id="myPosts">
+        <h2>Your Posts</h2>
+        <p>See all the posts you've made so far.</p>
+
+        <i class="fa fa-search" aria-hidden="true"></i>
+        <input class="search_bar" id="search" name="search" type="text" placeholder="Search your posts..." />
+      </section>
+    </main>
+  </body>
+</html>
