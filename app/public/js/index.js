@@ -13,13 +13,12 @@ async function displayUsername() {
     }
   }
 
-  // Add all recorded posts
-  for (let i = 0; i < post_data.length; i++) {
-    let author = post_data[i].username;
-    let timestamp = post_data[i].timestamp;
-    let title = post_data[i].title;
-    let content = post_data[i].content;
-    let postId = post_data[i].id;
+  post_data.map((post) => {
+    let author = post.username;
+    let timestamp = new Date(post.created_at).toLocaleString("en-GB");
+    let title = post.title;
+    let content = post.content;
+    let postId = post.id;
 
     let postContainer = document.createElement("article");
     postContainer.classList.add("post");
@@ -54,7 +53,7 @@ async function displayUsername() {
     figcap.appendChild(contentContainer);
 
     postList.insertBefore(postContainer, document.querySelectorAll("article")[0]);
-  }
+  });
 }
 
 displayUsername();

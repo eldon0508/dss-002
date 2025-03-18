@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <script src="../js/my_posts.js" defer></script>
+
+    <!-- Google reCAPTCHA script -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   </head>
   <body>
     <header>
@@ -25,7 +28,7 @@
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="/posts">Latest Posts</a></li>
-        <li class="active"><a href="/my_posts">My Posts</a></li>
+        <li class="active"><a href="/my-posts">My Posts</a></li>
       </ul>
     </nav>
 
@@ -34,7 +37,7 @@
         <h2>Share your thoughts</h2>
         <p>Get chatting with your fellow Foodies!</p>
 
-        <form action="/makepost" method="post" id="postForm" name="postForm">
+        <form id="postForm" name="postForm">
           <fieldset>
             <legend>Compose a Post</legend>
             <label for="title">Post Title:</label>
@@ -44,6 +47,11 @@
             <textarea id="content" name="content" placeholder="Write your thoughts here.." required></textarea>
 
             <input id="postId" name="postId" type="hidden" />
+
+            <p id="post_error"></p>
+
+            <div class="g-recaptcha" data-sitekey="6LcljfgqAAAAAJgj3YhnZnm8Xo4I4Whrc218JCl0"></div>
+            <br />
 
             <button type="submit" id="post_button">Post</button>
           </fieldset>

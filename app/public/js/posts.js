@@ -6,20 +6,18 @@ async function loadPosts() {
   const post_data = data.posts;
   let postList = document.getElementById("postsList");
 
-  // Remove current posts
   for (let i = 0; i < postList.children.length; i++) {
     if (postList.children[i].nodeName == "article") {
       postList.removeChild(postList.children[i]);
     }
   }
 
-  // Add all recorded posts
-  for (let i = 0; i < post_data.length; i++) {
-    let author = post_data[i].username;
-    let timestamp = post_data[i].timestamp;
-    let title = post_data[i].title;
-    let content = post_data[i].content;
-    let postId = post_data[i].id;
+  post_data.map((post) => {
+    let author = post.username;
+    let timestamp = new Date(post.created_at).toLocaleString("en-GB");
+    let title = post.title;
+    let content = post.content;
+    let postId = post.id;
 
     let postContainer = document.createElement("article");
     postContainer.classList.add("post");
@@ -29,7 +27,6 @@ async function loadPosts() {
     let postIdContainer = document.createElement("p");
     postIdContainer.textContent = postId;
     postIdContainer.hidden = true;
-    postId.id = "postId";
     postContainer.appendChild(postIdContainer);
 
     let img = document.createElement("img");
@@ -54,7 +51,7 @@ async function loadPosts() {
     figcap.appendChild(contentContainer);
 
     postList.insertBefore(postContainer, document.querySelectorAll("article")[0]);
-  }
+  });
 }
 
 loadPosts();

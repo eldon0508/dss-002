@@ -136,4 +136,45 @@ async function searchPosts() {
   }
 }
 
+document.getElementById("postForm").onsubmit = async function (e) {
+  e.preventDefault();
+
+  // Get all form datas
+  const formData = new FormData(document.getElementById("postForm"));
+  const captchaResponse = formData.get("g-recaptcha-response");
+  const title = formData.get("title");
+  const content = formData.get("content");
+  const postId = formData.get("postId");
+
+  const postError = document.getElementById("post_error");
+
+  try {
+    const result = await fetch("/makepost", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        content,
+        postId,
+        captcha: captchaResponse,
+      }),
+    });
+    const data = await result.json();
+
+    if (data.success === false) {
+      postError.textContent = data.message;
+      postError.classList.add("error");
+    } else {
+      window.location.href = data.redirect;
+    }
+  } catch (error) {
+    console.error(error);
+    postError.textContent = "Network error. Please try again later.";
+    postError.classList.add("error");
+  }
+};
+
 document.getElementById("search").addEventListener("keyup", searchPosts);

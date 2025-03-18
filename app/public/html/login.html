@@ -6,6 +6,9 @@
     <link rel="icon" type="image/x-icon" href="../imgs/foodie.ico" />
     <link rel="stylesheet" href="../css/style.css" />
     <script src="../js/login.js" defer></script>
+
+    <!-- Google reCAPTCHA script -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   </head>
   <body>
     <header>
@@ -13,17 +16,21 @@
       <h1>Welcome to Foodies 'R' Us!</h1>
     </header>
     <main>
-      <p>Please enter your username and password to continue.</p>
+      <form id="login_form">
+        <p>Please enter your username and password to continue.</p>
 
-      <label for="username">Username:</label>
-      <input id="username" name="username" placeholder="Please enter your username..." required />
+        <label for="username">Username:</label>
+        <input id="username" name="username" placeholder="Please enter your username..." required />
 
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password" placeholder="Please enter your password..." required />
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" placeholder="Please enter your password..." required />
 
-      <p id="login_error"></p>
+        <p id="login_error"></p>
 
-      <button id="login_btn" type="button" onclick="{checkLogin()}">Log in</button>
+        <div class="g-recaptcha" data-sitekey="6LcljfgqAAAAAJgj3YhnZnm8Xo4I4Whrc218JCl0"></div>
+        <br />
+        <button id="login_btn" type="submit">Log in</button>
+      </form>
     </main>
   </body>
 </html>
