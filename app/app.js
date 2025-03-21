@@ -278,7 +278,6 @@ app.get("/loadMyPayment", isAuth, async (req, res) => {
       const cnn = helper.decryptData(result[0].cnn, Buffer.from(result[0].iv, "hex"));
       const edate = helper.decryptData(result[0].edate, Buffer.from(result[0].iv, "hex"));
 
-      console.log(cnn, edate, "najksdf\n", result);
       return res.status(200).json({
         user: req.user,
         payment: { cnn: cnn, edate: edate }, // added payment object.
