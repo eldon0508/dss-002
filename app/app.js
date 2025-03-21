@@ -1,7 +1,6 @@
 const express = require("express");
 const app = express();
 const db = require("./database");
-require("dotenv").config();
 
 const helper = require("./helper");
 const cookieParser = require("cookie-parser");
@@ -12,6 +11,7 @@ const axios = require("axios");
 const passport = require("passport");
 const bcrypt = require("bcrypt");
 const zxcvbn = require("zxcvbn");
+const crypto = require("crypto");
 
 const PORT = process.env.PORT || 3000;
 const saltRounds = 12;
@@ -34,6 +34,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 require("./passportConfig")(passport);
+require("dotenv").config();
 
 function isAuth(req, res, next) {
   if (req.isAuthenticated()) {
@@ -43,28 +44,6 @@ function isAuth(req, res, next) {
 }
 
 app.get("/signup", async (req, res) => {
-  const crypto = require("crypto");
-
-  // Generate a secure key and IV
-  const key = crypto.randomBytes(32); // 256-bit key
-  const iv = crypto.randomBytes(16); // 128-bit IV
-
-  // Example of how to store the key and iv.
-  // Note: Storing keys and ivs securely is very important.
-  // This example just shows how to convert them to strings.
-  const keyString = key.toString("hex");
-  const ivString = iv.toString("hex");
-
-  console.log("Key (hex):", keyString);
-  console.log("IV (hex):", ivString);
-
-  // Example of how to retrieve the key and iv.
-  const retrievedKey = Buffer.from(keyString, "hex");
-  const retrievedIv = Buffer.from(ivString, "hex");
-
-  console.log("RKey (hex):", retrievedKey);
-  console.log("RIV (hex):", retrievedIv);
-
   if (req.isAuthenticated()) {
     return res.redirect("/");
   }
@@ -296,21 +275,13 @@ app.get("/loadMyPayment", isAuth, async (req, res) => {
     const result = await db.query(q, [req.user.id]);
 
     if (result.length > 0) {
-      const cnn = helper.decryptData(
-        result.cnn,
-        Buffer.from(process.env.CRYPTO_KEY, "hex"),
-        Buffer.from(process.env.CRYPTO_IV, "hex")
-      );
-      const edate = helper.decryptData(
-        result.edate,
-        Buffer.from(process.env.CRYPTO_KEY, "hex"),
-        Buffer.from(process.env.CRYPTO_IV, "hex")
-      );
+      const cnn = helper.decryptData(result[0].cnn, Buffer.from(result[0].iv, "hex"));
+      const edate = helper.decryptData(result[0].edate, Buffer.from(result[0].iv, "hex"));
 
       console.log(cnn, edate, "najksdf\n", result);
       return res.status(200).json({
         user: req.user,
-        payment: payment,
+        payment: { cnn: cnn, edate: edate }, // added payment object.
       });
     } else {
       return res.status(200).json({ user: req.user, payment: null });
@@ -328,22 +299,26 @@ app.post("/payment-update", isAuth, async (req, res) => {
     const checkQuery = `SELECT * FROM payments WHERE user_id = $1`;
     const payment = await db.query(checkQuery, [req.user.id]);
 
+    const iv = crypto.randomBytes(16).toString("hex"); // Generate a new IV for each encryption
+
     let query = "";
     if (payment.length > 0) {
-      query = `UPDATE payments SET cnn = $1, edate = $2 WHERE user_id = $3`;
+      query = `UPDATE payments SET cnn = $1, edate = $2, iv = $4 WHERE user_id = $3`; // Include IV in update
       await db.query(query, [
-        helper.encryptData(req.body.cnn, process.env.CRYPTO_KEY, process.env.CRYPTO_IV),
-        helper.encryptData(req.body.eDate, process.env.CRYPTO_KEY, process.env.CRYPTO_IV),
+        helper.encryptData(req.body.cnn, iv),
+        helper.encryptData(req.body.eDate, iv),
         req.user.id,
+        iv,
       ]);
       res.status(200);
     } else {
-      query = `INSERT INTO payments (user_id, cnn, edate, created_at) VALUES ($1, $2, $3, $4)`;
+      query = `INSERT INTO payments (user_id, cnn, edate, created_at, iv) VALUES ($1, $2, $3, $4, $5)`; // Include IV in insert
       await db.query(query, [
         req.user.id,
-        helper.encryptData(req.body.cnn, process.env.CRYPTO_KEY, process.env.CRYPTO_IV),
-        helper.encryptData(req.body.eDate, process.env.CRYPTO_KEY, process.env.CRYPTO_IV),
+        helper.encryptData(req.body.cnn, iv),
+        helper.encryptData(req.body.eDate, iv),
         dt,
+        iv,
       ]);
       res.status(201);
     }
