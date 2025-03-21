@@ -29,6 +29,7 @@ module.exports = async function (passport) {
       done(null, {
         id: user.id,
         username: user.username,
+        created_at: user.created_at,
       });
     });
   });

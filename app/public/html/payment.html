@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Foodies 'R' Us</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/x-icon" href="../imgs/foodie.ico" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <script src="../js/payment.js" defer></script>
+
+    <!-- Google reCAPTCHA script -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  </head>
+  <body>
+    <header>
+      <a href="/"><img id="logo" src="../imgs/logo.png" /></a>
+      <h1>Foodies 'R' Us</h1>
+      <div class="dropdown">
+        <button id="login_link" href="#">Username <i class="fa fa-caret-down"></i></button>
+        <div class="dropdown-content">
+          <form method="post" action="/logout">
+            <button type="submit">Log out</button>
+          </form>
+        </div>
+      </div>
+    </header>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/posts">Latest Posts</a></li>
+        <li><a href="/my-posts">My Posts</a></li>
+        <li class="active"><a href="/payment">My Payment</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <section>
+        <h2>Store your credit details</h2>
+        <p>Speed up the process of making booking.</p>
+
+        <form id="paymentForm" name="paymentForm">
+          <fieldset>
+            <legend>Debit/Credit card details</legend>
+            <div>
+              <label for="cnn">Credit Card Number:</label>
+              <input
+                id="cnn"
+                name="cnn"
+                type="tel"
+                inputmode="numeric"
+                pattern="[0-9\s]{13,19}"
+                autocomplete="cc-number"
+                maxlength="19"
+                placeholder="1234 5678 1234 5678"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="eDate">Exp. Date (MM/YY):</label>
+              <input
+                id="eDate"
+                name="eDate"
+                type="text"
+                inputmode="numeric"
+                pattern="(0[1-9]|1[0-2])\/[0-9]{2}"
+                placeholder="MM/YY"
+                maxlength="5"
+                required
+              />
+            </div>
+
+            <p id="payment_error"></p>
+            <br />
+
+            <div class="g-recaptcha" data-sitekey="6Lfj6vsqAAAAABV4TYha241azkd1CWsU8SS5iDcW"></div>
+            <br />
+
+            <button type="submit">Update</button>
+          </fieldset>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

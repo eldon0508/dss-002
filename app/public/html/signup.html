@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <link rel="icon" type="image/x-icon" href="../imgs/foodie.ico" />
     <link rel="stylesheet" href="../css/style.css" />
-    <script src="../js/login.js" defer></script>
+    <script src="../js/signup.js" defer></script>
 
     <!-- Google reCAPTCHA script -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
@@ -16,8 +16,8 @@
       <h1>Welcome to Foodies 'R' Us!</h1>
     </header>
     <main>
-      <form id="login_form">
-        <h1>Login</h1>
+      <form id="signup_form">
+        <h1>Sign up</h1>
         <p>Please enter your username and password to continue.</p>
 
         <label for="username">Username:</label>
@@ -26,13 +26,23 @@
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" placeholder="Please enter your password..." required />
 
-        <p id="login_error"></p>
+        <label for="password">Re-type Password:</label>
+        <input
+          type="password"
+          id="repassword"
+          name="repassword"
+          placeholder="Please re-enter your password..."
+          required
+        />
+
+        <p id="signup_error"></p>
 
         <div class="g-recaptcha" data-sitekey="6Lfj6vsqAAAAABV4TYha241azkd1CWsU8SS5iDcW"></div>
         <br />
-        <button id="login_btn" type="submit">Log in</button>
+
+        <button id="login_btn" type="submit">Sign up</button>
       </form>
-      Don't have an account?&nbsp;<a href="/signup">Sign up</a>
+      Already have an account?&nbsp;<a href="/login">Sign in</a>
     </main>
   </body>
 </html>
