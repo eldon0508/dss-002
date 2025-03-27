@@ -3,6 +3,7 @@ const app = express();
 const db = require("./database");
 
 const helper = require("./helper");
+const nodemailer = require("nodemailer");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const cors = require("cors");
@@ -36,12 +37,37 @@ app.use(passport.session());
 require("./passportConfig")(passport);
 require("dotenv").config();
 
+// Node mailer configuration for OTP
+const transporter = nodemailer.createTransport({
+  service: "Gmail",
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
 function isAuth(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
   }
   return res.redirect("/login");
 }
+
+// app.post("/send-email", async (req, res) => {
+//   // Prepare the email message options.
+//   const mailOptions = {
+//     from: "asbdjkfjas@gmail.com",
+//     to: `${req.body.email}`,
+//     subject: "Login OTP",
+//     text: `Your OTP is ${req.body.message}`,
+//   };
+
+//   // Send email and log the response.
+//   await transporter.sendMail(mailOptions);
+// });
 
 app.get("/signup", async (req, res) => {
   if (req.isAuthenticated()) {
@@ -57,6 +83,7 @@ app.get("/signup", async (req, res) => {
 app.post("/signup", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
+  const email = req.body.email;
   const repassword = req.body.repassword;
   const dt = new Date().toISOString().replace("T", " ").substring(0, 19);
 
@@ -75,10 +102,10 @@ app.post("/signup", async (req, res) => {
     return res.status(400).json({ success: false, message: "Password is too weak. Please choose a stronger password" });
   }
 
-  const checkQuery = `SELECT * FROM users WHERE username = $1`;
-  const data = await db.query(checkQuery, [req.body.username]);
+  const checkQuery = `SELECT * FROM users WHERE username = $1 or email = $2`;
+  const data = await db.query(checkQuery, [username, email]);
 
-  // Duplicate username check
+  // Duplicate username/email check
   if (data.length >= 1) {
     return res.status(400).json({ success: false, message: "Account creation failed" });
   }
@@ -89,9 +116,9 @@ app.post("/signup", async (req, res) => {
     );
 
     if (captchaCheck.data.success) {
-      const insertQuery = `INSERT INTO users (username, password, created_at) VALUES ($1, $2, $3)`;
+      const insertQuery = `INSERT INTO users (username, password, email, created_at) VALUES ($1, $2, $3, $4)`;
       const hashedPassword = bcrypt.hashSync(password, saltRounds);
-      const r = await db.query(insertQuery, [username, hashedPassword, dt]);
+      await db.query(insertQuery, [username, hashedPassword, email, dt]);
       return res.status(201).json({ success: true, redirect: "/login" });
     }
   } catch (err) {
@@ -111,47 +138,100 @@ app.get("/login", async (req, res) => {
   });
 });
 
-app.post("/login", async (req, res, next) => {
+app.post("/generate-otp", async (req, res) => {
   try {
-    const captchaCheck = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${req.body.captcha}`
-    );
+    const selectQuery = `SELECT email FROM users WHERE username = $1`;
+    const result = await db.query(selectQuery, [req.body.username]);
 
-    if (captchaCheck.data.success) {
-      passport.authenticate("local", (err, user) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ success: false, message: "Internal server error. Please try again." });
-        }
+    if (result.length > 0) {
+      const otp = helper.generateOTP();
+      const updateQuery = `UPDATE users SET otp = $1 WHERE username = $2`;
+      await db.query(updateQuery, [otp, req.body.username]);
 
-        if (user) {
-          req.login(user, (err) => {
-            if (err) console.error(err);
+      // Prepare the email message options.
+      const mailOptions = {
+        from: "wick98520@gmail.com",
+        to: `${result[0].email}`,
+        subject: "Login OTP",
+        text: `Your OTP is ${otp}`,
+      };
 
-            return res.status(200).json({
-              success: true,
-              message: "Successfully login.",
-              redirect: "/",
-            });
-          });
-        } else {
-          return res.status(401).json({
-            success: false,
-            message: "Username and/or password is incorrect. Please try again.",
-          });
-        }
-      })(req, res, next);
-    } else {
-      return res.status(401).json({
-        success: false,
-        message: "Verification failed. Please complete the reCAPTCHA and try again.",
-      });
+      try {
+        // Send email and log the response.
+        await transporter.sendMail(mailOptions);
+        console.log("OTP email sent successfully.");
+      } catch (emailError) {
+        console.error("Error sending OTP email:", emailError);
+      }
     }
+    return res.status(200).json({ success: true, message: "OTP generated and sent to email if any user found." });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+app.post("/login", async (req, res, next) => {
+  try {
+    // const captchaCheck = await axios.post(
+    //   `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${req.body.captcha}`
+    // );
+
+    // if (captchaCheck.data.success) {
+    await passport.authenticate("local", (err, user) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Internal server error. Please try again." });
+      }
+
+      if (user) {
+        req.login(user, (err) => {
+          if (err) console.error(err);
+
+          return res.status(200).json({
+            success: true,
+            message: "Successfully login.",
+            redirect: "/",
+          });
+        });
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Username and/or password and/or OTP is incorrect. Please try again.",
+        });
+      }
+    })(req, res, next);
+    // } else {
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: "Verification failed. Please complete the reCAPTCHA and try again.",
+    //   });
+    // }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// app.get("/otp", async (req, res) => {
+//   return res.sendFile(__dirname + "/public/html/otp.html", (err) => {
+//     if (err) {
+//       console.log(err);
+//     }
+//   });
+// });
+
+// app.post("/verify-otp", async (req, res) => {
+//   try {
+//     const q = `SELECT * FROM users WHERE username = $1 AND email = $2 AND otp = $3`;
+//     await db.query(q, [req.user.username, req.user.email, req.body, otp]);
+
+//     return res.status(200).json({ success: true, redirect: "/" });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ success: false, message: err.message });
+//   }
+// });
 
 app.post("/logout", isAuth, (req, res) => {
   req.logout(function (err) {
@@ -292,37 +372,47 @@ app.get("/loadMyPayment", isAuth, async (req, res) => {
 });
 
 app.post("/payment-update", isAuth, async (req, res) => {
+  const captchaCheck = await axios.post(
+    `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${req.body.captcha}`
+  );
+
   const dt = new Date().toISOString().replace("T", " ").substring(0, 19);
 
   try {
-    const checkQuery = `SELECT * FROM payments WHERE user_id = $1`;
-    const payment = await db.query(checkQuery, [req.user.id]);
+    if (captchaCheck.data.success) {
+      const checkQuery = `SELECT * FROM payments WHERE user_id = $1`;
+      const payment = await db.query(checkQuery, [req.user.id]);
 
-    const iv = crypto.randomBytes(16).toString("hex"); // Generate a new IV for each encryption
+      const iv = crypto.randomBytes(16).toString("hex"); // Generate a new IV for each encryption
 
-    let query = "";
-    if (payment.length > 0) {
-      query = `UPDATE payments SET cnn = $1, edate = $2, iv = $4 WHERE user_id = $3`; // Include IV in update
-      await db.query(query, [
-        helper.encryptData(req.body.cnn, iv),
-        helper.encryptData(req.body.eDate, iv),
-        req.user.id,
-        iv,
-      ]);
-      res.status(200);
+      let query = "";
+      if (payment.length > 0) {
+        query = `UPDATE payments SET cnn = $1, edate = $2, iv = $4 WHERE user_id = $3`; // Include IV in update
+        await db.query(query, [
+          helper.encryptData(req.body.cnn, iv),
+          helper.encryptData(req.body.eDate, iv),
+          req.user.id,
+          iv,
+        ]);
+        res.status(200);
+      } else {
+        query = `INSERT INTO payments (user_id, cnn, edate, created_at, iv) VALUES ($1, $2, $3, $4, $5)`; // Include IV in insert
+        await db.query(query, [
+          req.user.id,
+          helper.encryptData(req.body.cnn, iv),
+          helper.encryptData(req.body.eDate, iv),
+          dt,
+          iv,
+        ]);
+        res.status(201);
+      }
+      return res.json({ success: true, redirect: "/payment" });
     } else {
-      query = `INSERT INTO payments (user_id, cnn, edate, created_at, iv) VALUES ($1, $2, $3, $4, $5)`; // Include IV in insert
-      await db.query(query, [
-        req.user.id,
-        helper.encryptData(req.body.cnn, iv),
-        helper.encryptData(req.body.eDate, iv),
-        dt,
-        iv,
-      ]);
-      res.status(201);
+      return res.status(401).json({
+        success: false,
+        message: "Verification failed. Please complete the reCAPTCHA and try again.",
+      });
     }
-
-    return res.json({ success: true, redirect: "/payment" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: err.message });
