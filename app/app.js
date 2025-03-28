@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const db = require("./database");
 const helper = require("./helper");
+require("dotenv").config();
 
 // Import libraries
 const nodemailer = require("nodemailer");
@@ -23,19 +24,24 @@ app.use(express.json());
 app.use(cors({ credentials: true }));
 app.use(express.static(__dirname + "/public"));
 
-app.use(cookieParser("secret"));
+app.use(cookieParser(process.env.COOKIE_PARSER_SECRET));
 app.use(
   session({
-    secret: "dss-secret-002",
+    secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // Only transmit over HTTPS in production
+      httpOnly: true, // Prevent client-side JavaScript access
+      sameSite: "lax", // Mitigate CSRF
+      maxAge: 1000 * 60 * 60 * 2, // Expire after 2 hours
+    },
   })
 );
 
 app.use(passport.initialize());
 app.use(passport.session());
 require("./passportConfig")(passport);
-require("dotenv").config();
 
 // Node mailer configuration for OTP
 const transporter = nodemailer.createTransport({
@@ -213,10 +219,16 @@ app.post("/login", async (req, res, next) => {
 });
 
 app.post("/logout", isAuth, (req, res) => {
-  req.logout(function (err) {
-    if (err) return next(err);
-
-    return res.redirect("/login");
+  req.session.destroy((err) => {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error logging out" });
+    } else {
+      req.logout(function (err) {
+        if (err) console.error(err);
+        return res.redirect("/login");
+      });
+    }
   });
 });
 
