@@ -17,11 +17,15 @@
     </header>
     <main>
       <form id="signup_form">
+        <input type="hidden" name="_csrf" id="csrfTokenInput" />
         <h1>Sign up</h1>
         <p>Please enter your username and password to continue.</p>
 
         <label for="username">Username:</label>
         <input id="username" name="username" placeholder="Please enter your username..." required />
+
+        <label for="email">Email:</label>
+        <input id="email" name="email" placeholder="Please enter your email..." required />
 
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" placeholder="Please enter your password..." required />

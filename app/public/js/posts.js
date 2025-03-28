@@ -53,5 +53,4 @@ async function loadPosts() {
     postList.insertBefore(postContainer, document.querySelectorAll("article")[0]);
   });
 }
-
 loadPosts();

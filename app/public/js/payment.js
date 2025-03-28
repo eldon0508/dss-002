@@ -1,3 +1,14 @@
+async function fetchCsrfToken() {
+  try {
+    const response = await fetch("/csrf-token");
+    const data = await response.json();
+    document.getElementById("csrfTokenInput").value = data.csrfToken;
+  } catch (error) {
+    console.error("Error fetching CSRF token:", error);
+  }
+}
+fetchCsrfToken();
+
 async function loadMyPayment() {
   const result = await fetch("/loadMyPayment");
   const data = await result.json();
@@ -14,7 +25,6 @@ async function loadMyPayment() {
     document.getElementById("eDate").value = "";
   }
 }
-
 loadMyPayment();
 
 document.getElementById("paymentForm").onsubmit = async function (e) {
@@ -25,6 +35,7 @@ document.getElementById("paymentForm").onsubmit = async function (e) {
   const captchaResponse = formData.get("g-recaptcha-response");
   const cnn = formData.get("cnn");
   const eDate = formData.get("eDate");
+  const csrfToken = document.getElementById("csrfTokenInput").value;
 
   const paymentError = document.getElementById("payment_error");
 
@@ -39,6 +50,7 @@ document.getElementById("paymentForm").onsubmit = async function (e) {
         cnn,
         eDate,
         captcha: captchaResponse,
+        _csrf: csrfToken, // Include the CSRF token
       }),
     });
     const data = await result.json();

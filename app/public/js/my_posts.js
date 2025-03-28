@@ -68,7 +68,6 @@ async function loadMyPosts() {
     postList.insertBefore(postContainer, document.querySelectorAll("article")[0]);
   });
 }
-
 loadMyPosts();
 
 function editPost(e) {
@@ -136,6 +135,17 @@ async function searchPosts() {
   }
 }
 
+async function fetchCsrfToken() {
+  try {
+    const response = await fetch("/csrf-token");
+    const data = await response.json();
+    document.getElementById("csrfTokenInput").value = data.csrfToken;
+  } catch (error) {
+    console.error("Error fetching CSRF token:", error);
+  }
+}
+fetchCsrfToken();
+
 document.getElementById("postForm").onsubmit = async function (e) {
   e.preventDefault();
 
@@ -145,6 +155,7 @@ document.getElementById("postForm").onsubmit = async function (e) {
   const title = formData.get("title");
   const content = formData.get("content");
   const postId = formData.get("postId");
+  const csrfToken = document.getElementById("csrfTokenInput").value;
 
   const postError = document.getElementById("post_error");
 
@@ -160,6 +171,7 @@ document.getElementById("postForm").onsubmit = async function (e) {
         content,
         postId,
         captcha: captchaResponse,
+        _csrf: csrfToken, // Include the CSRF token
       }),
     });
     const data = await result.json();

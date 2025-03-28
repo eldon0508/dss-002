@@ -368,3 +368,8 @@ legend {
 #postForm button[type="submit"]:hover {
   background-color: #f2875c;
 }
+
+#otp-button:disabled {
+  background-color: #e0e0e0;
+  color: #888;
+}

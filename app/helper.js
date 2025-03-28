@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const zxcvbn = require("zxcvbn");
 
 function encryptData(text, iv) {
   const cipher = crypto.createCipheriv(
@@ -22,4 +23,28 @@ function decryptData(encryptedText, iv) {
   return decrypted;
 }
 
-module.exports = { encryptData, decryptData };
+function generateOTP() {
+  return crypto.randomInt(100000, 999999);
+}
+
+// Implements a delay to protect against timing attacks.
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Input validation function
+function validateSignupPassword(password, repassword) {
+  if (password.length < 8) {
+    return { valid: false, message: "Password must be at least 8 characters long." };
+  }
+  if (password !== repassword) {
+    return { valid: false, message: "Passwords do not match." };
+  }
+  const passwordStrength = zxcvbn(password);
+  if (passwordStrength.score < 3) {
+    return { valid: false, message: "Password is too weak. Please choose a stronger password." };
+  }
+  return { valid: true };
+}
+
+module.exports = { encryptData, decryptData, generateOTP, delay, validateSignupPassword };

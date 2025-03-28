@@ -1,8 +1,9 @@
 const express = require("express");
 const app = express();
 const db = require("./database");
-
 const helper = require("./helper");
+
+// Import libraries
 const nodemailer = require("nodemailer");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
@@ -11,10 +12,9 @@ const axios = require("axios");
 
 const passport = require("passport");
 const bcrypt = require("bcrypt");
-const zxcvbn = require("zxcvbn");
 const crypto = require("crypto");
+const csurf = require("tiny-csrf");
 
-const PORT = process.env.PORT || 3000;
 const saltRounds = 12;
 
 // support parsing of application/json type post data
@@ -39,7 +39,7 @@ require("dotenv").config();
 
 // Node mailer configuration for OTP
 const transporter = nodemailer.createTransport({
-  service: "Gmail",
+  service: "gmail",
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
   secure: true,
@@ -49,6 +49,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+app.use(
+  csurf(
+    process.env.CSRF_SECRET, // secret -- must be 32 bits or chars in length
+    ["POST"], // the request methods we want CSRF protection for
+    ["/logout"]
+  )
+);
+
 function isAuth(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
@@ -56,97 +64,79 @@ function isAuth(req, res, next) {
   return res.redirect("/login");
 }
 
-// app.post("/send-email", async (req, res) => {
-//   // Prepare the email message options.
-//   const mailOptions = {
-//     from: "asbdjkfjas@gmail.com",
-//     to: `${req.body.email}`,
-//     subject: "Login OTP",
-//     text: `Your OTP is ${req.body.message}`,
-//   };
-
-//   // Send email and log the response.
-//   await transporter.sendMail(mailOptions);
-// });
+app.get("/csrf-token", async (req, res) => {
+  const csrfToken = req.csrfToken();
+  return res.json({ csrfToken: csrfToken });
+});
 
 app.get("/signup", async (req, res) => {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated && req.isAuthenticated()) {
     return res.redirect("/");
   }
-  return res.sendFile(__dirname + "/public/html/signup.html", (err) => {
-    if (err) {
-      console.log(err);
-    }
+  res.sendFile(__dirname + "/public/html/signup.html", (err) => {
+    if (err) console.error(err);
   });
 });
 
 app.post("/signup", async (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
-  const email = req.body.email;
-  const repassword = req.body.repassword;
+  const { username, email, password, repassword, captcha } = req.body;
   const dt = new Date().toISOString().replace("T", " ").substring(0, 19);
 
-  // Minimum password length check
-  if (password.length < 8) {
-    return res.status(400).json({ success: false, message: "Password must be at least 8 characters long." });
-  }
-  // Password match check
-  if (password !== repassword) {
-    return res.status(400).json({ success: false, message: "Passwords do not match" });
-  }
-
-  // Vulnerable password check using zxcvbn
-  const passwordStrength = zxcvbn(password);
-  if (passwordStrength.score < 3) {
-    return res.status(400).json({ success: false, message: "Password is too weak. Please choose a stronger password" });
-  }
-
-  const checkQuery = `SELECT * FROM users WHERE username = $1 or email = $2`;
-  const data = await db.query(checkQuery, [username, email]);
-
-  // Duplicate username/email check
-  if (data.length >= 1) {
-    return res.status(400).json({ success: false, message: "Account creation failed" });
+  const validationResult = helper.validateSignupPassword(password, repassword);
+  if (!validationResult.valid) {
+    await helper.delay(1000);
+    return res.status(400).json({ success: false, message: validationResult.message });
   }
 
   try {
+    const checkQuery = `SELECT * FROM users WHERE username = $1 OR email = $2`;
+    const data = await db.query(checkQuery, [username, email]);
+
+    if (data.length > 0) {
+      await helper.delay(1000);
+      return res.status(400).json({ success: false, message: "Account creation failed." });
+    }
+
     const captchaCheck = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${req.body.captcha}`
+      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${captcha}`
     );
 
     if (captchaCheck.data.success) {
       const insertQuery = `INSERT INTO users (username, password, email, created_at) VALUES ($1, $2, $3, $4)`;
       const hashedPassword = bcrypt.hashSync(password, saltRounds);
       await db.query(insertQuery, [username, hashedPassword, email, dt]);
+      await helper.delay(1000);
       return res.status(201).json({ success: true, redirect: "/login" });
+    } else {
+      await helper.delay(1000);
+      return res.status(400).json({ success: false, message: "Captcha verification failed. Please try again." });
     }
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: err.message });
+    console.error("Signup error:", err);
+    await helper.delay(1000);
+    return res.status(500).json({ success: false, message: "Internal server error." });
   }
 });
 
 app.get("/login", async (req, res) => {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated && req.isAuthenticated()) {
     return res.redirect("/");
   }
   return res.sendFile(__dirname + "/public/html/login.html", (err) => {
-    if (err) {
-      console.log(err);
-    }
+    if (err) console.error(err);
   });
 });
 
-app.post("/generate-otp", async (req, res) => {
+app.get("/generate-otp/:username", async (req, res) => {
   try {
     const selectQuery = `SELECT email FROM users WHERE username = $1`;
-    const result = await db.query(selectQuery, [req.body.username]);
+    const result = await db.query(selectQuery, [req.params.username]);
 
     if (result.length > 0) {
+      console.log("selectQuery", result);
       const otp = helper.generateOTP();
       const updateQuery = `UPDATE users SET otp = $1 WHERE username = $2`;
-      await db.query(updateQuery, [otp, req.body.username]);
+      await db.query(updateQuery, [otp, req.params.username]);
 
       // Prepare the email message options.
       const mailOptions = {
@@ -173,65 +163,54 @@ app.post("/generate-otp", async (req, res) => {
 
 app.post("/login", async (req, res, next) => {
   try {
-    // const captchaCheck = await axios.post(
-    //   `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${req.body.captcha}`
-    // );
+    const captchaCheck = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${req.body.captcha}`
+    );
 
-    // if (captchaCheck.data.success) {
-    await passport.authenticate("local", (err, user) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ success: false, message: "Internal server error. Please try again." });
-      }
+    if (captchaCheck.data.success) {
+      await passport.authenticate("local", (err, user) => {
+        if (err) {
+          console.error("Passport authentication error:", err);
+          helper.delay(1000);
+          return res.status(500).json({ success: false, message: "Internal server error. Please try again." });
+        }
 
-      if (user) {
-        req.login(user, (err) => {
-          if (err) console.error(err);
+        if (user) {
+          req.login(user, (err) => {
+            if (err) {
+              console.error("Session login error:", err);
+              helper.delay(1000);
+              return res.status(500).json({ success: false, message: "Internal server error. Please try again." });
+            }
 
-          return res.status(200).json({
-            success: true,
-            message: "Successfully login.",
-            redirect: "/",
+            helper.delay(1000);
+            return res.status(200).json({
+              success: true,
+              message: "Login successful.",
+              redirect: "/",
+            });
           });
-        });
-      } else {
-        return res.status(401).json({
-          success: false,
-          message: "Username and/or password and/or OTP is incorrect. Please try again.",
-        });
-      }
-    })(req, res, next);
-    // } else {
-    //   return res.status(401).json({
-    //     success: false,
-    //     message: "Verification failed. Please complete the reCAPTCHA and try again.",
-    //   });
-    // }
+        } else {
+          helper.delay(1000);
+          return res.status(401).json({
+            success: false,
+            message: "Invalid username, password, or OTP. Please try again.",
+          });
+        }
+      })(req, res, next);
+    } else {
+      helper.delay(1000);
+      return res.status(401).json({
+        success: false,
+        message: "Verification failed. Please complete the reCAPTCHA and try again.",
+      });
+    }
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: err.message });
+    console.error("Login error:", err);
+    helper.delay(1000);
+    return res.status(500).json({ success: false, message: "Internal server error." });
   }
 });
-
-// app.get("/otp", async (req, res) => {
-//   return res.sendFile(__dirname + "/public/html/otp.html", (err) => {
-//     if (err) {
-//       console.log(err);
-//     }
-//   });
-// });
-
-// app.post("/verify-otp", async (req, res) => {
-//   try {
-//     const q = `SELECT * FROM users WHERE username = $1 AND email = $2 AND otp = $3`;
-//     await db.query(q, [req.user.username, req.user.email, req.body, otp]);
-
-//     return res.status(200).json({ success: true, redirect: "/" });
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).json({ success: false, message: err.message });
-//   }
-// });
 
 app.post("/logout", isAuth, (req, res) => {
   req.logout(function (err) {
@@ -418,6 +397,8 @@ app.post("/payment-update", isAuth, async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);

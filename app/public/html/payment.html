@@ -39,6 +39,7 @@
         <p>Speed up the process of making booking.</p>
 
         <form id="paymentForm" name="paymentForm">
+          <input type="hidden" name="_csrf" id="csrfTokenInput" />
           <fieldset>
             <legend>Debit/Credit card details</legend>
             <div>
@@ -70,11 +71,11 @@
               />
             </div>
 
-            <p id="payment_error"></p>
-            <br />
+            <div>
+              <p id="payment_error"></p>
+            </div>
 
             <div class="g-recaptcha" data-sitekey="6Lfj6vsqAAAAABV4TYha241azkd1CWsU8SS5iDcW"></div>
-            <br />
 
             <button type="submit">Update</button>
           </fieldset>

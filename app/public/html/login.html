@@ -17,20 +17,48 @@
     </header>
     <main>
       <form id="login_form">
+        <input type="hidden" name="_csrf" id="csrfTokenInput" />
         <h1>Login</h1>
         <p>Please enter your username and password to continue.</p>
 
         <label for="username">Username:</label>
-        <input id="username" name="username" placeholder="Please enter your username..." required />
+        <div>
+          <input
+            id="username"
+            name="username"
+            placeholder="Please enter your username..."
+            style="display: inline-block"
+            required
+            autofocus
+          />
+          <button type="button" id="otp-button" style="display: inline-block">Get OTP</button>
+          <p id="otp-counter" style="display: inline-block"></p>
+        </div>
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" placeholder="Please enter your password..." required />
+        <div>
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" placeholder="Please enter your password..." required />
+        </div>
 
+        <div>
+          <label for="otp">OTP:</label>
+          <input
+            id="otp"
+            name="otp"
+            type="number"
+            max="999999"
+            min="0"
+            placeholder="Please enter otp"
+            required
+            inputmode="numeric"
+          />
+        </div>
         <p id="login_error"></p>
 
         <div class="g-recaptcha" data-sitekey="6Lfj6vsqAAAAABV4TYha241azkd1CWsU8SS5iDcW"></div>
         <br />
         <button id="login_btn" type="submit">Log in</button>
+        <br />
       </form>
       Don't have an account?&nbsp;<a href="/signup">Sign up</a>
     </main>
