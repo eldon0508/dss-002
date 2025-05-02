@@ -64,7 +64,7 @@ app.use(
 );
 
 function isAuth(req, res, next) {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
   return res.redirect("/login");
@@ -219,16 +219,18 @@ app.post("/login", async (req, res, next) => {
 });
 
 app.post("/logout", isAuth, (req, res) => {
-  req.session.destroy((err) => {
+  req.logout(function (err) {
     if (err) {
       console.error(err);
-      res.status(500).json({ error: "Error logging out" });
-    } else {
-      req.logout(function (err) {
-        if (err) console.error(err);
-        return res.redirect("/login");
-      });
+      return res.status(500).json({ error: "Error logging out" });
     }
+    req.session.destroy((destroyErr) => {
+      if (destroyErr) {
+        console.error(destroyErr);
+        return res.status(500).json({ error: "Error destroying session" });
+      }
+      return res.redirect("/login");
+    });
   });
 });
 
