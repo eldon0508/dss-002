@@ -1,7 +1,5 @@
 const express = require("express");
 const app = express();
-const db = require("./database");
-const helper = require("./helper");
 require("dotenv").config();
 
 // Import libraries
@@ -16,6 +14,9 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const csurf = require("tiny-csrf");
 
+const db = require("./database");
+const helper = require("./helper");
+
 const saltRounds = 12;
 
 // support parsing of application/json type post data
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use(cors({ credentials: true }));
 app.use(express.static(__dirname + "/public"));
 
+// express-session configuration, defend session hijacking
 app.use(cookieParser(process.env.COOKIE_PARSER_SECRET));
 app.use(
   session({
@@ -139,10 +141,10 @@ app.get("/generate-otp/:username", async (req, res) => {
     const result = await db.query(selectQuery, [req.params.username]);
 
     if (result.length > 0) {
-      console.log("selectQuery", result);
       const otp = helper.generateOTP();
-      const updateQuery = `UPDATE users SET otp = $1 WHERE username = $2`;
-      await db.query(updateQuery, [otp, req.params.username]);
+      const createQuery =
+        "INSERT INTO otps (username, code, expiry_datetime) VALUES ($1, $2, NOW() + INTERVAL '15 minutes')";
+      await db.query(createQuery, [req.params.username, otp]);
 
       // Prepare the email message options.
       const mailOptions = {
@@ -167,6 +169,7 @@ app.get("/generate-otp/:username", async (req, res) => {
   }
 });
 
+// Account Enumeration (Generic error message return)
 app.post("/login", async (req, res, next) => {
   try {
     const captchaCheck = await axios.post(
@@ -300,18 +303,21 @@ app.post("/makepost", isAuth, async (req, res) => {
     );
 
     const dt = new Date().toISOString().replace("T", " ").substring(0, 19);
+    let msg;
 
     if (captchaCheck.data.success) {
       if (req.body.postId !== "") {
-        const q = `UPDATE posts SET title = $1, content = $2, created_at = $3 WHERE id = $4`;
-        await db.query(q, [req.body.title, req.body.content, dt, req.body.postId]);
+        const q = "UPDATE posts SET title = $1, content = $2, created_at = NOW() WHERE id = $3";
+        await db.query(q, [req.body.title, req.body.content, req.body.postId]);
         res.status(200);
+        msg = "Update post successfully!";
       } else {
-        const q = `INSERT INTO posts (user_id, title, content, created_at) VALUES ($1, $2, $3, $4)`;
-        await db.query(q, [req.user.id, req.body.title, req.body.content, dt]);
+        const q = "INSERT INTO posts (user_id, title, content, created_at) VALUES ($1, $2, $3, NOW())";
+        await db.query(q, [req.user.id, req.body.title, req.body.content]);
         res.status(201);
+        msg = "Create post successfully!";
       }
-      return res.json({ success: true, redirect: "/my-posts" });
+      return res.json({ success: true, redirect: "/my-posts", message: msg });
     } else {
       return res
         .status(400)
@@ -327,7 +333,7 @@ app.delete("/deletePost", isAuth, async (req, res) => {
   try {
     const q = "DELETE FROM posts WHERE id = $1";
     await db.query(q, [req.body.postId]);
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, message: "Delete post successfully!" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: err.message });

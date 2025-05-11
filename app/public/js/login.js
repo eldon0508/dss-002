@@ -55,6 +55,7 @@ document.getElementById("login_form").onsubmit = async function (e) {
       loginError.textContent = data.message;
       loginError.classList.add("error");
     } else {
+      alert("Login successfully, welcome back!");
       window.location.href = data.redirect;
     }
   } catch (error) {
@@ -66,6 +67,7 @@ document.getElementById("login_form").onsubmit = async function (e) {
 
 const otpButton = document.getElementById("otp-button");
 
+// Generate OTP email and trigger button to be disabled and timer starts
 otpButton.onclick = async function () {
   const formData = new FormData(document.getElementById("login_form"));
   const usernameInput = formData.get("username");
@@ -87,6 +89,7 @@ otpButton.onclick = async function () {
       loginError.textContent = data.message;
       loginError.classList.add("error");
     } else {
+      alert("OTP generated and sent to email if any user found");
       loginError.textContent = data.message;
       postRequestOTP();
     }

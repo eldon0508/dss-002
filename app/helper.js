@@ -1,6 +1,9 @@
 const crypto = require("crypto");
+
+// https://github.com/dropbox/zxcvbn
 const zxcvbn = require("zxcvbn");
 
+// AES-256 Encryption
 function encryptData(text, iv) {
   const cipher = crypto.createCipheriv(
     process.env.CRYPTO_ALGORITHM,
@@ -12,6 +15,7 @@ function encryptData(text, iv) {
   return encrypted;
 }
 
+// AES-256 Decryption
 function decryptData(encryptedText, iv) {
   const decipher = crypto.createDecipheriv(
     process.env.CRYPTO_ALGORITHM,
@@ -23,6 +27,7 @@ function decryptData(encryptedText, iv) {
   return decrypted;
 }
 
+// Generate OTP helper
 function generateOTP() {
   return crypto.randomInt(100000, 999999);
 }
@@ -32,7 +37,7 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Input validation function
+// Password validation function in sign up
 function validateSignupPassword(password, repassword) {
   if (password.length < 8) {
     return { valid: false, message: "Password must be at least 8 characters long." };
