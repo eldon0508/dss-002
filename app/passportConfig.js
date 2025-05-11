@@ -8,18 +8,26 @@ module.exports = async function (passport) {
     new LocalStrategy(
       { usernameField: "username", passwordField: "password", passReqToCallback: true },
       async (req, username, password, done) => {
-        const query = `SELECT * FROM users WHERE username = $1 AND otp = $2`;
-        const data = await db.query(query, [username, req.body.otp]);
+        const query = "SELECT * FROM users WHERE username = $1";
+        const data = await db.query(query, [username]);
+        const otpQuery =
+          "SELECT * FROM otps WHERE username = $1 AND code = $2 AND expiry_datetime > NOW() - INTERVAL '15 minutes' ORDER BY expiry_datetime DESC LIMIT 1";
+        const otpData = await db.query(otpQuery, [username, req.body.otp]);
 
-        if (data.length <= 0) {
+        if (data.length <= 0 || otpData <= 0) {
+          console.log(data, otpData);
+          console.log("User not found");
           return done(null, false);
         }
+
         bcrypt.compare(password, data[0].password, (err, result) => {
           if (err) throw err;
           if (!result) {
+            console.log("Wrong password");
             // Found, but incorrect password
             return done(null, false);
           } else {
+            console.log("Login success", data[0]);
             return done(null, data[0]);
           }
         });

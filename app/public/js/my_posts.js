@@ -84,7 +84,7 @@ function editPost(e) {
 }
 
 async function deletePost(e, postId) {
-  const res = await fetch("/deletePost", {
+  const result = await fetch("/deletePost", {
     method: "DELETE",
     headers: {
       Accept: "application/json",
@@ -95,8 +95,12 @@ async function deletePost(e, postId) {
     }),
   });
 
-  // Hide element on button click so deletion appears immediate
-  e.target.parentNode.hidden = true;
+  const data = await result.json();
+  if (data.success == true) {
+    alert(data.message);
+    // Hide element on button click so deletion appears immediate
+    e.target.parentNode.hidden = true;
+  }
 }
 
 async function searchPosts() {
@@ -180,6 +184,7 @@ document.getElementById("postForm").onsubmit = async function (e) {
       postError.textContent = data.message;
       postError.classList.add("error");
     } else {
+      alert(data.message);
       window.location.href = data.redirect;
     }
   } catch (error) {
