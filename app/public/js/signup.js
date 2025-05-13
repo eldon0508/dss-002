@@ -62,6 +62,7 @@ document.getElementById("signup_form").onsubmit = async function (e) {
       signupError.textContent = data.message;
       signupError.classList.add("error");
     } else {
+      alert("Sign up successfully, please login.");
       window.location.href = data.redirect;
     }
   } catch (error) {

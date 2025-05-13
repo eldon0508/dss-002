@@ -59,6 +59,7 @@ document.getElementById("paymentForm").onsubmit = async function (e) {
       paymentError.textContent = data.message;
       paymentError.classList.add("error");
     } else {
+      alert("Card details have been updated successfully!");
       window.location.href = data.redirect;
     }
   } catch (error) {
