@@ -188,7 +188,7 @@ app.post("/login", async (req, res, next) => {
           req.login(user, (err) => {
             if (err) {
               console.error("Session login error:", err);
-              helper.delay(1000);
+              helper.delay(1000); // Delay helper to protect against timing attacks with account enumeration.
               return res.status(500).json({ success: false, message: "Internal server error. Please try again." });
             }
 
@@ -203,7 +203,7 @@ app.post("/login", async (req, res, next) => {
           helper.delay(1000);
           return res.status(401).json({
             success: false,
-            message: "Invalid username, password, or OTP. Please try again.",
+            message: "Invalid username, password, or OTP. Please try again.", // Generec error message in response to tackle account enumeration
           });
         }
       })(req, res, next);
@@ -353,6 +353,7 @@ app.get("/loadMyPayment", isAuth, async (req, res) => {
     const q = `SELECT * FROM payments WHERE user_id = $1`;
     const result = await db.query(q, [req.user.id]);
 
+    // Calling helper to decrypt the credit card details to return in client side
     if (result.length > 0) {
       const cnn = helper.decryptData(result[0].cnn, Buffer.from(result[0].iv, "hex"));
       const edate = helper.decryptData(result[0].edate, Buffer.from(result[0].iv, "hex"));
@@ -384,6 +385,7 @@ app.post("/payment-update", isAuth, async (req, res) => {
 
       const iv = crypto.randomBytes(16).toString("hex"); // Generate a new IV for each encryption
 
+      // Calling helper to encrypt card number and expiry date of credit cards
       let query = "";
       if (payment.length > 0) {
         query = `UPDATE payments SET cnn = $1, edate = $2, iv = $4 WHERE user_id = $3`; // Include IV in update
