@@ -26,7 +26,7 @@ app.use(cors({ credentials: true }));
 app.use(express.static(__dirname + "/public"));
 
 // express-session configuration, defend session hijacking
-app.use(cookieParser(process.env.COOKIE_PARSER_SECRET));
+app.use(cookieParser(process.env.COOKIE_PARSER_SECRET)); // Parses and secures cookies against tampering
 app.use(
   session({
     secret: process.env.SESSION_SECRET, // Secures session ID cookies against forgery
