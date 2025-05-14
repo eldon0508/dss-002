@@ -29,14 +29,14 @@ app.use(express.static(__dirname + "/public"));
 app.use(cookieParser(process.env.COOKIE_PARSER_SECRET));
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
-    saveUninitialized: false,
-    resave: false,
+    secret: process.env.SESSION_SECRET, // Secures session ID cookies against forgery
+    saveUninitialized: false, // Prevents sessions for non-logged-in users
+    resave: false, // Prevents unnecessary session saving
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Only transmit over HTTPS in production
+      secure: process.env.NODE_ENV === "production", // Ensure cookies are only transmit over HTTPS in production
       httpOnly: true, // Prevent client-side JavaScript access
       sameSite: "lax", // Mitigate CSRF
-      maxAge: 1000 * 60 * 60 * 2, // Expire after 2 hours
+      maxAge: 1000 * 60 * 60 * 2, // Sets session cookie expiration to 2 hours
     },
   })
 );
@@ -307,6 +307,19 @@ app.post("/makepost", isAuth, async (req, res) => {
 
     if (captchaCheck.data.success) {
       if (req.body.postId !== "") {
+        const qCheck = "SELECT user_id FROM posts WHERE id = $1";
+        const post = await db.query(qCheck, [req.body.postId]);
+
+        if (post.length === 0) {
+          // Post not found
+          return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        if (post[0].user_id !== req.user.id) {
+          // User is not authorized to edit this post
+          return res.status(403).json({ success: false, message: "Unauthorized to edit this post." });
+        }
+
         const q = "UPDATE posts SET title = $1, content = $2, created_at = NOW() WHERE id = $3";
         await db.query(q, [req.body.title, req.body.content, req.body.postId]);
         res.status(200);
