@@ -307,6 +307,7 @@ app.post("/makepost", isAuth, async (req, res) => {
 
     if (captchaCheck.data.success) {
       if (req.body.postId !== "") {
+        // Server side authorization checks to prevent IDOR
         const qCheck = "SELECT user_id FROM posts WHERE id = $1";
         const post = await db.query(qCheck, [req.body.postId]);
 
@@ -314,7 +315,6 @@ app.post("/makepost", isAuth, async (req, res) => {
           // Post not found
           return res.status(404).json({ success: false, message: "Post not found." });
         }
-
         if (post[0].user_id !== req.user.id) {
           // User is not authorized to edit this post
           return res.status(403).json({ success: false, message: "Unauthorized to edit this post." });
